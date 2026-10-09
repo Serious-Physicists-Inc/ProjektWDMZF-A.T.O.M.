@@ -12,6 +12,8 @@ from PyQt6.QtGui import QColor, QPalette
 import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QSlider, QComboBox, QCheckBox, QLabel
+from PyQt6.QtCore import Qt 
 
 @dataclass
 class WindowSpec:
@@ -134,6 +136,14 @@ class Window:
             self.__worker.abort()
             self.__worker = None
 
+    def _pause(self) -> None:
+        if self.__scheduler is not None:
+            self.__scheduler.block()
+
+    def _resume(self) -> None:
+        if self.__scheduler is not None:
+            self.__scheduler.unblock()
+
 class ScatterWindow(Window):
     def __init__(self, spec: WindowSpec = WindowSpec()) -> None:
         super().__init__(spec)
@@ -168,14 +178,46 @@ class VolumeWindow(Window):
     def __init__(self, spec: WindowSpec = WindowSpec()) -> None:
         super().__init__(spec)
         self.__volume: Optional[gl.GLVolumeItem] = None
+
+        self.__rgba: Optional[NPUArrayT] = None
+        self.__cut_axis: int = 0
+        self.__cut_pos: Optional[int] = None
+        self.__single: bool = False
+        self.__panel: Optional[QWidget] = None
+        self.__slider: Optional[QSlider] = None
+        self.__label: Optional[QLabel] = None
+
     def __color(self, vl: Volume) -> NPUArrayT:
         v_norm = self._normalize(vl.val)
 
         rgba = self._cmap.map(v_norm ** 0.4, mode='float').reshape((*v_norm.shape, 4))
         rgba[..., 3] = v_norm ** 0.5
-        return np.ascontiguousarray((rgba * 255).astype(NPUintT))
+        self.__rgba = np.ascontiguousarray((rgba * 255).astype(NPUintT)) 
+        return self.__apply_cut(self.__rgba)
+    
+    def __apply_cut(self, rgba:NPUArrayT) -> NPUArrayT:
+        if self.__cut_pos is None:
+            return rgba
+        ax, k = self.__cut_axis, self.__cut_pos
+        out = rgba.copy()
+        sel = [slice(None)] *3
+
+        if self.__single:
+            out[...,3] = 0
+            sel[ax] = k
+            out[tuple(sel)] = rgba[tuple(sel)]
+        else:
+            sel[ax] = slice(k+1,None)
+            out[tuple(sel) + (3,)] = 0
+        return out
+    def __refresh(self) -> None:
+        if self.__volume is not None and self.__rgba is not None:
+            self.__volume.setData(self.__apply_cut(self.__rgba))
+        
+    
     @property
     def type(self): return "volume"
+
     def draw(self, vl: Volume) -> None:
         super().draw(vl)
         if self.__volume is None:
@@ -197,5 +239,72 @@ class VolumeWindow(Window):
         shape = np.array(self.__volume.data.shape, dtype=NPFloatT)
         center_offset = shape / 2
         self.__volume.translate(-center_offset[0], -center_offset[1], -center_offset[2])
+
+    def slicer(self) -> None:
+        if self.__volume is None:
+            raise RuntimeError("Wykres chmurowy nie został narysowany")
+        if self.__panel is not None:
+            self.__panel.show()
+            return 
+
+        panel = QWidget(self._view)
+        panel.setStyleSheet("background-color: rgba(30,30,30,200); color: white; border-radius: 6px;")
+        lay = QHBoxLayout(panel)
+
+        axis_box = QComboBox() 
+        axis_box.addItems(['X', 'Y', 'Z'])
+        axis_box.setCurrentIndex(self.__cut_axis)
+
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setMinimumWidth(300)
+
+        single_chk = QCheckBox("Single slice")
+        label = QLabel()
+        label.setMinimumWidth(70)
+
+        for w in (QLabel("Axis"), axis_box, slider, label, single_chk):
+            lay.addWidget(w)
+
+        self.__slider, self.__panel, self.__label = slider, panel, label
+
+        def reset_rng() -> None:
+            n = self.__volume.data.shape[self.__cut_axis]
+            slider.blockSignals(True)
+            slider.setRange(0, n-1)
+            slider.setValue(n-1)
+            slider.blockSignals(False)
+            on_slider(n-1)
+
+        def on_slider(k: int) -> None:
+            n = self.__volume.data.shape[self.__cut_axis]
+            self.__cut_pos = None if (k >= n-1 and not self.__single) else k
+            label.setText(f"{k+1}/{n}")
+            self.__refresh()
+
+        def on_axis(i: int) -> None:
+            self.__cut_axis = i
+            reset_rng()
+
+        def on_single(state:int) -> None:
+            self.__single = bool(state)
+            on_slider(slider.value())
+
+        slider.valueChanged.connect(on_slider)
+        axis_box.currentIndexChanged.connect(on_axis)
+        single_chk.stateChanged.connect(on_single)
+
+        def place() -> None:
+            panel.adjustSize()
+            panel.move((self._view.width() - panel.width()) // 2, self._view.height() - panel.height() - 15)
+            panel.raise_()
+
+        self._view.resizeOccurred.connect(place)
+
+        slider.sliderPressed.connect(self._pause)
+        slider.sliderReleased.connect(self._resume)
+
+        reset_rng()
+        panel.show()
+        place()
 
 __all__ = ['WindowSpec', 'ScatterWindow', 'VolumeWindow']

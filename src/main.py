@@ -17,7 +17,7 @@ from PyQt6.QtGui import QFont, QImage, QIntValidator
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QTabWidget, QCheckBox, QPushButton, QLineEdit, QComboBox,
-    QLabel, QMessageBox, QSlider, QScrollArea, QFileDialog)
+    QLabel, QMessageBox, QSlider, QScrollArea, QFileDialog, QGroupBox)
 import pyqtgraph as pg
 
 QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
@@ -234,6 +234,7 @@ class MainWindow(QWidget):
 
         Tab2.setLayout(main_tab_layout)
         return Tab2
+    
     def __add_row(self, defaults=None) -> None:
         row = Row(self.__states_layout)
         row.removeBtnClickOccurred.connect(lambda r=row: self.__remove_row(r))
@@ -280,7 +281,13 @@ class MainWindow(QWidget):
                 self.__plot = ScatterWindow(plot_spec)
 
             self.__plot.draw(source.val().masked())
+
             self.__plot.show()
+
+            is_volume = isinstance(self.__plot, VolumeWindow)
+            if is_volume:
+                self.__plot.slicer()
+
 
             def callback(i: int) -> Union[Scatter,Volume]:
                 return source.val(i * self.speed).masked()
