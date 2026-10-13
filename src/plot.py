@@ -94,7 +94,7 @@ class Window:
         self._view.showMaximized()
     def set_hud(self, text: str) -> None:
         if self._view.hud is None:
-            raise RuntimeError("Hud nie został zainicjowany")
+            raise RuntimeError("Hud was not initiated")
         self._view.hud.setText(text)
     def center(self) -> None: pass
     def snapshot(self) -> NPUArrayT:
@@ -164,7 +164,7 @@ class ScatterWindow(Window):
             self.__scatter.setData(pos=np.column_stack(sc.points), color=self.__color(sc), size=2)
     def update(self, sc: Scatter) -> None:
         if self.__scatter is None:
-            raise RuntimeError("Wykres punktowy nie został narysowany")
+            raise RuntimeError("Scatter plot was not drawn")
 
         super().update(sc)
         self.__scatter.setData(pos=np.column_stack(sc.points), color=self.__color(sc))
@@ -229,7 +229,7 @@ class VolumeWindow(Window):
         self.center()
     def update(self, vl: Volume) -> None:
         if self.__volume is None:
-            raise RuntimeError("Wykres chmurowy nie został narysowany")
+            raise RuntimeError("Volume plot was not drawn")
 
         super().update(vl)
         self.__volume.setData(self.__color(vl))
@@ -242,7 +242,7 @@ class VolumeWindow(Window):
 
     def slicer(self) -> None:
         if self.__volume is None:
-            raise RuntimeError("Wykres chmurowy nie został narysowany")
+            raise RuntimeError("Volume plot was not drawn")
         if self.__panel is not None:
             self.__panel.show()
             return 

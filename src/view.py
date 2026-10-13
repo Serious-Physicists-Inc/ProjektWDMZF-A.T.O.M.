@@ -47,7 +47,7 @@ class ColorBar(QWidget):
         return self.__scale
     def set_scale(self, value: NPFloatT) -> None:
         if value <= 0.0:
-            raise ValueError("Wartość skali musi być większa od 0")
+            raise ValueError("Scale value must be greater than 0")
 
         self.__scale = value
         self.__set_labels()
@@ -65,7 +65,7 @@ class ColorBar(QWidget):
         self.__norm_func = func
     def __set_labels(self) -> None:
         if self.__norm_func is None:
-            raise ValueError("Funkcja normalizacyjna nie została ustawiona")
+            raise ValueError("Normalization function has not been set")
 
         for lbl in self.__labels:
             lbl.deleteLater()
@@ -94,9 +94,9 @@ class ColorBar(QWidget):
             self.__labels.append(lbl)
     def set_val(self, val: NPFArrayT) -> None:
         if self.__cmap is None:
-            raise ValueError("Mapa kolorów nie została ustawiona")
+            raise ValueError("Colormap has not been set")
         if self.__norm_func is None:
-            raise ValueError("Funkcja normalizacyjna nie została ustawiona")
+            raise ValueError("Normalization function has not been set")
 
         vmax = np.max(val)
         resolution = 256

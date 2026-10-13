@@ -73,7 +73,7 @@ class Row(QWidget):
         try:
             return int(self.__inp_n.text())
         except ValueError:
-            raise ValueError("Główna liczba kwantowa 'n; musi być całkowita")
+            raise ValueError("Pincipal quantum number must be an integer")
     @n.setter
     def n(self, value: int) -> None:
         self.__inp_n.setText(str(value))
@@ -82,7 +82,7 @@ class Row(QWidget):
         try:
             return int(self.__inp_l.text())
         except ValueError:
-            raise ValueError("Poboczna liczba kwantowa 'l' musi być całkowita")
+            raise ValueError("Azimuthal quantum number must be an integer")
     @l.setter
     def l(self, value: int) -> None:
         self.__inp_l.setText(str(value))
@@ -91,7 +91,7 @@ class Row(QWidget):
         try:
             return int(self.__inp_m.text())
         except ValueError:
-            raise ValueError("Magnetyczna liczba kwantowa 'm' musi być całkowita")
+            raise ValueError("Magnetic quantum number must be a whole number")
     @m.setter
     def m(self, value: int) -> None:
         self.__inp_m.setText(str(value))

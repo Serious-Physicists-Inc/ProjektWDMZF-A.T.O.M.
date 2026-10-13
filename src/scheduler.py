@@ -11,7 +11,7 @@ T = TypeVar("T")
 class Scheduler(QObject, Generic[T]):
     stepOccurred = pyqtSignal(int)
     def __init__(self, func: Callable[[T], None], max_fps: int, parent: Optional[QObject] = None) -> None:
-        if max_fps <= 0: raise ValueError("Wartość FPS musi być większa od 0")
+        if max_fps <= 0: raise ValueError("FPS value must be greater than 0")
 
         super().__init__(parent)
 

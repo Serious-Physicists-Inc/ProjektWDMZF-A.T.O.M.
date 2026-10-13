@@ -36,18 +36,18 @@ class MainWindow(QWidget):
         self.__scheduler: Optional[Scheduler] = None
         self.__rows: List[Row] = []
 
-        self.__btn_snapshot = QPushButton("Zrzut ekranu")
+        self.__btn_snapshot = QPushButton("Screenshot")
         self.__btn_snapshot.setMinimumHeight(30)
         self.__btn_snapshot.setFixedWidth(110)
         self.__btn_snapshot.clicked.connect(self.take_snapshot)
         main_layout.addWidget(self.__btn_snapshot, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.__tabs = QTabWidget()
-        self.__tabs.addTab(self.__states_tab(), "Kreator orbitali")
-        self.__tabs.addTab(self.__settings_tab(), "Ustawienia")
+        self.__tabs.addTab(self.__states_tab(), "Orbital creator")
+        self.__tabs.addTab(self.__settings_tab(), "Settings")
         main_layout.addWidget(self.__tabs)
 
-        self.__btn_apply = QPushButton("Zastosuj")
+        self.__btn_apply = QPushButton("Apply")
         self.__btn_apply.setObjectName("PrimaryButton")
         self.__btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         self.__btn_apply.clicked.connect(self.__process)
@@ -82,32 +82,32 @@ class MainWindow(QWidget):
         return 'volume' if self.__chk_vol.isChecked() else 'scatter'
     def take_snapshot(self) -> None:
         if self.__plot is None:
-            QMessageBox.warning(self, "Błąd", "Nie wykryto aktywnego okna z wykresem.")
+            QMessageBox.warning(self, "Error", "Plot window was not found")
             return
 
         try:
             img_array = self.__plot.snapshot()
-            file_path, _ = QFileDialog.getSaveFileName(self,"Zapisz zrzut ekranu","snapshot.png","PNG Image (*.png);;JPEG Image (*.jpg);;Bitmap (*.bmp)")
+            file_path, _ = QFileDialog.getSaveFileName(self,"Save screenshot","snapshot.png","PNG Image (*.png);;JPEG Image (*.jpg);;Bitmap (*.bmp)")
 
             if file_path:
                 height, width, channels = img_array.shape
                 qimg = QImage(img_array.tobytes(), width, height, channels * width, QImage.Format.Format_RGBA8888)
 
                 if qimg.save(file_path):
-                    QMessageBox.information(self, "Sukces", f"Zrzut wykresu zapisano do pliku:\n{file_path}")
+                    QMessageBox.information(self, "Success", f"Screenshot was saved to file:\n{file_path}")
                 else:
-                    QMessageBox.critical(self, "Błąd", "Zapis do pliku nie powiódł się")
+                    QMessageBox.critical(self, "Error", "Saving file was not a success")
 
         except Exception as e:
             traceback.print_exc()
-            QMessageBox.critical(self, "Błąd", f"Wystąpił błąd:\n{e}")
+            QMessageBox.critical(self, "Error", f"An error has occurered:\n{e}")
 
     def __settings_tab(self):
         Tab1 = QWidget()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        info_label = QLabel("Dodatkowe ustawienia")
+        info_label = QLabel("Additional settings")
         info_label.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 12px;")
 
         form_layout = QFormLayout()
@@ -129,24 +129,24 @@ class MainWindow(QWidget):
         self.__box_cmap.setCurrentText("plasma")
         self.__box_cmap.setMinimumWidth(220)
 
-        form_layout.addRow(make_label("Skala kolorów:"), self.__box_cmap)
+        form_layout.addRow(make_label("Color scale:"), self.__box_cmap)
 
         self.__inp_fps = QLineEdit("20")
         self.__inp_fps.setValidator(QIntValidator(5, 120))
         self.__inp_fps.setFixedWidth(80)
 
-        form_layout.addRow(make_label("Ilość klatek na sekundę:"), self.__inp_fps)
+        form_layout.addRow(make_label("FPS:"), self.__inp_fps)
 
         self.__inp_dim = QLineEdit("100")
         self.__inp_dim.setValidator(QIntValidator(20, 1000))
         self.__inp_dim.setFixedWidth(80)
 
-        form_layout.addRow(make_label("Rozmiar siatki przestrzennej:"), self.__inp_dim)
+        form_layout.addRow(make_label("Mesh size:"), self.__inp_dim)
 
         self.__hud = QCheckBox()
         self.__hud.setChecked(True)
 
-        form_layout.addRow(make_label("Pokaż HUD:"), self.__hud)
+        form_layout.addRow(make_label("Show HUD:"), self.__hud)
 
         self.__colorbar = QCheckBox()
         self.__colorbar.setChecked(True)
@@ -159,7 +159,7 @@ class MainWindow(QWidget):
 
         speed_layout = QHBoxLayout()
 
-        lbl_speed_title = QLabel("Szybkość animacji:")
+        lbl_speed_title = QLabel("Animation speed:")
         lbl_speed_title.setStyleSheet("font-weight: bold; color: #00BCff;")
 
         self.__lbl_speed_value = QLabel("1.0")
@@ -225,7 +225,7 @@ class MainWindow(QWidget):
         scroll.setWidget(states_container)
         main_tab_layout.addWidget(scroll)
 
-        self.__btn_add_state = QPushButton("+ Dodaj stan")
+        self.__btn_add_state = QPushButton("+ Add state")
         self.__btn_add_state.clicked.connect(lambda: self.__add_row())
         main_tab_layout.addWidget(self.__btn_add_state)
 
@@ -258,14 +258,14 @@ class MainWindow(QWidget):
         try:
             states = []
             if not self.__rows:
-                raise ValueError("Wymagane podanie przynajmniej jednego stanu")
+                raise ValueError("At least one state is required")
 
             for row in self.__rows:
                 states.append(State(StateSpec(row.n,row.l,row.m)))
             self.__atom = Atom(*states)
 
             plot_spec: WindowSpec = WindowSpec(
-                title="Chmura elektronowa atomu wodoru",
+                title="Hydrogen atom electrion cloud",
                 cmap_name=self.cmap_name,
                 show_hud=self.show_hud,
                 show_colorbar=self.show_colorbar
@@ -323,10 +323,10 @@ class MainWindow(QWidget):
             self.__scheduler.stepOccurred.connect(on_step)
 
         except ValueError as error:
-            QMessageBox.warning(self,"Input Error",f"Nieprawidłowe dane wejściowe: {error}")
+            QMessageBox.warning(self,"Input Error",f"Incorrect input data: {error}")
         except Exception as exception:
             traceback.print_exc()
-            QMessageBox.critical(self,"Error",f"Nastąpił nieoczekiwany błąd: {exception}")
+            QMessageBox.critical(self,"Error",f"An unexpected error has occurred: {exception}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
